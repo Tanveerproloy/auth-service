@@ -12,6 +12,10 @@ def create_app():
     #Shows error if anything missing
     Config.validate()
     
+    #test database connection
+    from app.services.db import test_connection
+    test_connection()
+    
     #register blueprints
     _register_blueprints(app)
     
