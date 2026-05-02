@@ -16,6 +16,10 @@ def create_app():
     from app.services.db import test_connection
     test_connection()
     
+    #test Redis connection
+    from app.services.cache import test_connection as test_redis
+    test_redis()
+    
     #register blueprints
     _register_blueprints(app)
     

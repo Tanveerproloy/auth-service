@@ -23,7 +23,6 @@ class Config:
     
     @staticmethod
     def validate():
-        """Call this on startup — crashes early if anything critical is missing"""
         required = ["SECRET_KEY", "JWT_SECRET", "DATABASE_URL", "REDIS_URL"]
         missing = [key for key in required if not os.getenv(key)]
         if missing:
