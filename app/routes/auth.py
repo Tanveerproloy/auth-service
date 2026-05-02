@@ -21,7 +21,7 @@ def login():
         "status": "ok"
     }), 200
 
-
+@auth_bp.route("/health",methods=["GET"])
 def health():
     health_status = {
         "status": "ok",
