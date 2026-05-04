@@ -1,5 +1,8 @@
 from flask import request, jsonify
-from app.services.auth_service import register_user
+from app.services.auth_service import (
+    register_user,
+    login_user,
+)
 
 
 def validate_registration_input(data: dict) -> list:
@@ -15,6 +18,18 @@ def validate_registration_input(data: dict) -> list:
         errors.append("Password is required")
     elif len(data["password"]) < 8:
         errors.append("Password must be at least 8 characters")
+
+    return errors
+
+def validate_login_input(data: dict) -> list:
+
+    errors = []
+
+    if not data.get("email"):
+        errors.append("Email is required")
+
+    if not data.get("password"):
+        errors.append("Password is required")
 
     return errors
 
@@ -63,6 +78,52 @@ class AuthController:
 
         except Exception as e:
             # Unexpected errors
+            return jsonify({
+                "status":  "error",
+                "message": "Internal server error"
+            }), 500
+            
+    @staticmethod
+    def login():
+        #Parse JSON body
+        data = request.get_json()
+
+        if not data:
+            return jsonify({
+                "status":  "error",
+                "message": "Request body must be JSON"
+            }), 400
+
+        #Validate input
+        errors = validate_login_input(data)
+
+        if errors:
+            return jsonify({
+                "status":  "error",
+                "message": "Validation failed",
+                "errors":  errors
+            }), 422
+
+        #Call the service
+        try:
+            result = login_user(
+                email    = data["email"].lower().strip(),
+                password = data["password"]
+            )
+            return jsonify({
+                "status":  "success",
+                "message": "Login successful",
+                "data":    result
+            }), 200
+
+        except ValueError as e:
+            # Wrong email or password
+            return jsonify({
+                "status":  "error",
+                "message": str(e)
+            }), 401
+
+        except Exception:
             return jsonify({
                 "status":  "error",
                 "message": "Internal server error"

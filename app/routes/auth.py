@@ -49,4 +49,4 @@ def register():
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
-    return jsonify({"message": "login route works", "status": "ok"}), 200
+    return AuthController.login()

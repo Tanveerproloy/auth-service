@@ -116,3 +116,58 @@ def register_user(email: str, password: str) -> dict:
         # Always close cursor and connection
         cursor.close()
         connection.close()
+        
+
+#Login
+
+
+def login_user(email: str, password: str) -> dict:
+
+    connection = get_connection()
+    cursor     = get_cursor(connection)
+
+    try:
+        # ── Step 1: Find user by email ────────────────────────
+        cursor.execute(
+            """
+            SELECT id, email, password_hash, is_verified,
+                   created_at, updated_at
+            FROM users
+            WHERE email = %s
+            """,
+            (email,)
+        )
+        row = cursor.fetchone()
+
+        #Check user exists
+        if not row:
+            raise ValueError("Invalid email or password")
+
+        user = User.from_row(row)
+
+        #Verify password
+        password_matches = verify_password(password, user.password_hash)
+
+        if not password_matches:
+            raise ValueError("Invalid email or password")
+
+        #Generate fresh tokens
+        access_token  = generate_access_token(user.id, user.email)
+        refresh_token = generate_refresh_token()
+
+        #Overwrite old refresh token in Redis
+        store_refresh_token(user.id, refresh_token)
+
+        #Return response data
+        return {
+            "user":          user.to_dict(),
+            "access_token":  access_token,
+            "refresh_token": refresh_token
+        }
+
+    except Exception:
+        raise
+
+    finally:
+        cursor.close()
+        connection.close()
