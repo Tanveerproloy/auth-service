@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, g
 from app.services.db import get_connection, get_cursor
 from app.services.cache import redis_client
 from app.controllers.auth_controller import AuthController
@@ -63,3 +63,13 @@ def profile():
             "email":   g.email
         }
     }), 200
+    
+@auth_bp.route("/refresh", methods=["POST"])
+def refresh():
+    return AuthController.refresh()
+
+
+@auth_bp.route("/logout", methods=["POST"])
+@authenticate
+def logout():
+    return AuthController.logout()

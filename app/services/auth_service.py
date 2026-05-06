@@ -3,7 +3,13 @@ import jwt
 import uuid
 from datetime import datetime, timezone, timedelta
 from app.services.db import get_connection, get_cursor
-from app.services.cache import store_refresh_token
+from app.services.cache import (
+    store_refresh_token,
+    get_user_id_from_refresh_token,
+    get_refresh_token_for_user,
+    delete_refresh_token,
+    refresh_token_exists
+)
 from app.models import User
 from config import Config
 
@@ -171,3 +177,69 @@ def login_user(email: str, password: str) -> dict:
     finally:
         cursor.close()
         connection.close()
+        
+def refresh_access_token(refresh_token: str) -> dict:
+
+    #Check token exists in Redis
+    if not refresh_token_exists(refresh_token):
+        raise ValueError("Refresh token is invalid or expired")
+
+    #Get user_id from token
+    user_id = get_user_id_from_refresh_token(refresh_token)
+
+    if not user_id:
+        raise ValueError("Refresh token is invalid or expired")
+
+    #Fetch user from PostgreSQL
+    connection = get_connection()
+    cursor     = get_cursor(connection)
+
+    try:
+        cursor.execute(
+            """
+            SELECT id, email, password_hash, is_verified,
+                   created_at, updated_at
+            FROM users
+            WHERE id = %s
+            """,
+            (user_id,)
+        )
+        row = cursor.fetchone()
+
+        if not row:
+            # User was deleted but token still in Redis
+            delete_refresh_token(user_id, refresh_token)
+            raise ValueError("User no longer exists")
+
+        user = User.from_row(row)
+
+    finally:
+        cursor.close()
+        connection.close()
+
+    #Delete the OLD refresh toke
+    delete_refresh_token(user_id, refresh_token)
+
+    #Generate fresh tokens
+    new_access_token  = generate_access_token(user.id, user.email)
+    new_refresh_token = generate_refresh_token()
+
+    #Store the NEW refresh token
+    store_refresh_token(user.id, new_refresh_token)
+
+    #Return new tokens
+    return {
+        "access_token":  new_access_token,
+        "refresh_token": new_refresh_token
+    }
+
+
+#Logout
+
+
+def logout_user(user_id: str) -> None:
+
+    current_token = get_refresh_token_for_user(user_id)
+
+    if current_token:
+        delete_refresh_token(user_id, current_token)

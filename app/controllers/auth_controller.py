@@ -2,6 +2,8 @@ from flask import request, jsonify
 from app.services.auth_service import (
     register_user,
     login_user,
+    refresh_access_token,
+    logout_user
 )
 
 
@@ -122,6 +124,52 @@ class AuthController:
                 "status":  "error",
                 "message": str(e)
             }), 401
+
+        except Exception:
+            return jsonify({
+                "status":  "error",
+                "message": "Internal server error"
+            }), 500
+            
+    @staticmethod
+    def refresh():
+
+        data = request.get_json()
+
+        if not data or not data.get("refresh_token"):
+            return jsonify({
+                "status":  "error",
+                "message": "refresh_token is required"
+            }), 400
+
+        try:
+            result = refresh_access_token(data["refresh_token"])
+            return jsonify({
+                "status":  "success",
+                "message": "Token refreshed successfully",
+                "data":    result
+            }), 200
+
+        except ValueError as e:
+            return jsonify({
+                "status":  "error",
+                "message": str(e)
+            }), 401
+
+        except Exception:
+            return jsonify({
+                "status":  "error",
+                "message": "Internal server error"
+            }), 500
+
+    @staticmethod
+    def logout():
+        try:
+            logout_user(g.user_id)
+            return jsonify({
+                "status":  "success",
+                "message": "Logged out successfully"
+            }), 200
 
         except Exception:
             return jsonify({
