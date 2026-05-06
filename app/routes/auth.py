@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify
 from app.services.db import get_connection, get_cursor
 from app.services.cache import redis_client
 from app.controllers.auth_controller import AuthController
+from app.middleware import authenticate
 
 # Create the blueprint
 auth_bp = Blueprint("auth", __name__)
@@ -50,3 +51,15 @@ def register():
 @auth_bp.route("/login", methods=["POST"])
 def login():
     return AuthController.login()
+
+@auth_bp.route("/profile", methods=["GET"])
+@authenticate
+def profile():
+    return jsonify({
+        "status":  "success",
+        "message": "Token is valid",
+        "data": {
+            "user_id": g.user_id,
+            "email":   g.email
+        }
+    }), 200

@@ -8,7 +8,7 @@ from app.models import User
 from config import Config
 
 
-# ── Password Helpers ───────────────────────────────────────────
+#Password Helpers
 
 
 def hash_password(plain_text: str) -> str:
@@ -97,10 +97,10 @@ def register_user(email: str, password: str) -> dict:
         access_token  = generate_access_token(user.id, user.email)
         refresh_token = generate_refresh_token()
 
-        # ── Step 6: Store refresh token in Redis ──────────────
+        #Store refresh token in Redis
         store_refresh_token(user.id, refresh_token)
 
-        # ── Step 7: Return response data ──────────────────────
+        #Return response data
         return {
             "user":          user.to_dict(),
             "access_token":  access_token,
@@ -127,7 +127,7 @@ def login_user(email: str, password: str) -> dict:
     cursor     = get_cursor(connection)
 
     try:
-        # ── Step 1: Find user by email ────────────────────────
+        #Find user by email
         cursor.execute(
             """
             SELECT id, email, password_hash, is_verified,
